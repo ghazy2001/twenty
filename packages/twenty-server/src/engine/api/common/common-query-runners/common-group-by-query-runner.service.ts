@@ -23,6 +23,7 @@ import {
 import { STANDARD_ERROR_MESSAGE } from 'src/engine/constants/standard-error-message.constant';
 import { GroupByDefinition } from 'src/engine/api/common/common-query-runners/types/group-by-definition.type';
 import { GroupByField } from 'src/engine/api/common/common-query-runners/types/group-by-field.type';
+import { assertGroupByFieldsAreReadableOrThrow } from 'src/engine/api/common/common-query-runners/utils/assert-group-by-fields-are-readable-or-throw.util';
 import { computeMaxFieldCountPerRecord } from 'src/engine/api/common/common-query-runners/utils/compute-max-field-count-per-record.util';
 import { getGroupByDefinitions } from 'src/engine/api/common/common-query-runners/utils/get-group-by-definitions.util';
 import { getObjectAlias } from 'src/engine/api/common/common-query-runners/utils/get-object-alias-for-group-by.util';
@@ -93,6 +94,7 @@ export class CommonGroupByQueryRunnerService extends CommonBaseQueryRunnerServic
       flatFieldMetadataOptionMaps,
       authContext,
       permissionsPrincipals,
+      recordReadRestrictions,
     } = queryRunnerContext;
 
     const objectAlias = getObjectAlias(flatObjectMetadata);
@@ -108,6 +110,13 @@ export class CommonGroupByQueryRunnerService extends CommonBaseQueryRunnerServic
         flatObjectMetadataMaps,
         flatFieldMetadataMaps,
       });
+
+    assertGroupByFieldsAreReadableOrThrow({
+      groupByFields,
+      flatObjectMetadata,
+      flatObjectMetadataMaps,
+      recordReadRestrictions,
+    });
 
     this.addJoinForGroupByOnRelationFields({
       queryBuilder,
