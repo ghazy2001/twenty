@@ -8,6 +8,18 @@ import { MESSAGING_GMAIL_FOLDERS_WITH_CATEGORY_EXCLUSIONS } from 'src/modules/me
 import { buildGmailLabelSearchName } from 'src/modules/messaging/message-import-manager/drivers/gmail/utils/build-gmail-label-search-name.util';
 import { computeGmailDefaultNotSyncedLabelsSearchFilter } from 'src/modules/messaging/message-import-manager/drivers/gmail/utils/compute-gmail-default-not-synced-labels-search-filter';
 
+const SAFE_UNQUOTED_GMAIL_LABEL_REGEX = /^[a-z0-9_-]+$/i;
+
+const formatGmailLabelSearchTerm = (labelSearchName: string): string => {
+  if (SAFE_UNQUOTED_GMAIL_LABEL_REGEX.test(labelSearchName)) {
+    return `label:${labelSearchName}`;
+  }
+
+  const escaped = labelSearchName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
+  return `label:"${escaped}"`;
+};
+
 export const computeGmailExcludeSearchFilter = (
   messageFolders: Pick<
     MessageFolderEntity,
@@ -47,8 +59,8 @@ export const computeGmailExcludeSearchFilter = (
 
   const inclusionQuery =
     labelNamesToInclude.length === 1
-      ? `label:${labelNamesToInclude[0]}`
-      : `(${labelNamesToInclude.map((name) => `label:${name}`).join(' OR ')})`;
+      ? formatGmailLabelSearchTerm(labelNamesToInclude[0])
+      : `(${labelNamesToInclude.map(formatGmailLabelSearchTerm).join(' OR ')})`;
 
   const hasCustomLabelSelected = syncedFolders.some(
     (folder) =>

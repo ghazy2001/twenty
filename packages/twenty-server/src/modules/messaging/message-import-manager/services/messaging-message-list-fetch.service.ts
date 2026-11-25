@@ -23,6 +23,10 @@ import { SyncMessageFoldersService } from 'src/modules/messaging/message-folder-
 import { MessagingCursorService } from 'src/modules/messaging/message-import-manager/services/messaging-cursor.service';
 import { MessagingGetMessageListService } from 'src/modules/messaging/message-import-manager/services/messaging-get-message-list.service';
 import {
+  MessageImportDriverException,
+  MessageImportDriverExceptionCode,
+} from 'src/modules/messaging/message-import-manager/drivers/exceptions/message-import-driver.exception';
+import {
   MessageImportExceptionHandlerService,
   MessageImportSyncStep,
 } from 'src/modules/messaging/message-import-manager/services/messaging-import-exception-handler.service';
@@ -217,6 +221,7 @@ export class MessagingMessageListFetchService {
             ? await this.computeFullSyncMessageChannelMessageAssociationsToDelete(
                 freshMessageChannel,
                 messageExternalIds,
+                messageLists.length > 0,
               )
             : [];
 
@@ -365,6 +370,7 @@ export class MessagingMessageListFetchService {
   private async computeFullSyncMessageChannelMessageAssociationsToDelete(
     messageChannel: Pick<MessageChannelEntity, 'id'>,
     messageExternalIds: string[],
+    hasFetchedMessageLists: boolean,
   ) {
     const messageChannelMessageAssociationRepository =
       this.workspaceOrmManager.getRepositoryWithoutPermissionChecks<MessageChannelMessageAssociationWorkspaceEntity>(
@@ -393,6 +399,17 @@ export class MessagingMessageListFetchService {
       );
 
       return [];
+    }
+
+    if (hasFetchedMessageLists && messageExternalIds.length === 0) {
+      this.logger.error(
+        `messageChannelId: ${messageChannel.id} Full sync returned 0 messages while stored message associations exist; aborting mass deletion`,
+      );
+
+      throw new MessageImportDriverException(
+        'Full sync returned an empty message list for a channel with existing stored messages',
+        MessageImportDriverExceptionCode.TEMPORARY_ERROR,
+      );
     }
 
     this.logger.log(

@@ -205,4 +205,72 @@ describe('computeGmailExcludeSearchFilter', () => {
     expect(result).toContain('-category:forums');
     expect(result).toContain('-category:updates');
   });
+
+  it('quotes label search terms containing ampersands or special characters', () => {
+    const singleResult = computeGmailExcludeSearchFilter(
+      [
+        {
+          externalId: 'Label_1',
+          name: 'Clients & Partners',
+          isSynced: true,
+          parentFolderId: null,
+        },
+        {
+          externalId: 'INBOX',
+          name: 'INBOX',
+          isSynced: false,
+          parentFolderId: null,
+        },
+      ],
+      MessageFolderImportPolicy.SELECTED_FOLDERS,
+    );
+
+    expect(singleResult).toContain('label:"clients-&-partners"');
+
+    const orResult = computeGmailExcludeSearchFilter(
+      [
+        {
+          externalId: 'Label_1',
+          name: 'Invoices',
+          isSynced: true,
+          parentFolderId: null,
+        },
+        {
+          externalId: 'Label_2',
+          name: 'Clients & Partners',
+          isSynced: true,
+          parentFolderId: null,
+        },
+        {
+          externalId: 'INBOX',
+          name: 'INBOX',
+          isSynced: false,
+          parentFolderId: null,
+        },
+      ],
+      MessageFolderImportPolicy.SELECTED_FOLDERS,
+    );
+
+    expect(orResult).toContain('(label:invoices OR label:"clients-&-partners")');
+
+    const quotedResult = computeGmailExcludeSearchFilter(
+      [
+        {
+          externalId: 'Label_3',
+          name: 'VIP "Gold"',
+          isSynced: true,
+          parentFolderId: null,
+        },
+        {
+          externalId: 'INBOX',
+          name: 'INBOX',
+          isSynced: false,
+          parentFolderId: null,
+        },
+      ],
+      MessageFolderImportPolicy.SELECTED_FOLDERS,
+    );
+
+    expect(quotedResult).toContain('label:"vip-\\"gold\\""');
+  });
 });
